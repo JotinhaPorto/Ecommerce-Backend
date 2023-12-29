@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String
+  hashedPassword String
+  image          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  store Store[]
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  color     Color[]
+  size      Size[]
+  billboard Billboard[]
+  category  Category[]
+  product   Product[]
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId    String
+  sizeId     String
+  colorId    String
+  categoryId String
+
+  store    Store    @relation(fields: [storeId], references: [id])
+  size     Size     @relation(fields: [sizeId], references: [id])
+  color    Color    @relation(fields: [colorId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  image Image[]
+}
+
+model Size {
+  id        String   @id @default(uuid())
+  name      String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId String
+  store   Store     @relation(fields: [storeId], references: [id])
+  product Product[]
+}
+
+model Color {
+  id        String   @id @default(uuid())
+  name      String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId String
+  store   Store     @relation(fields: [storeId], references: [id])
+  product Product[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId     String
+  billboardId String
+  store       Store     @relation(fields: [storeId], references: [id])
+  billboard   Billboard @relation(fields: [billboardId], references: [id])
+  product     Product[]
+}
+
+model Billboard {
+  id        String   @id @default(uuid())
+  image     String
+  label     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeId  String
+  store    Store      @relation(fields: [storeId], references: [id])
+  category Category[]
+}
+
+model Image {
+  id        String   @id @default(uuid())
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productId String
+  Product   Product @relation(fields: [productId], references: [id])
+}
