@@ -4,40 +4,11 @@ import jwt from 'jsonwebtoken'
 const prisma = new PrismaClient()
 
 type createUserData = Prisma.Args<typeof prisma.user, 'create'>['data']
-export const createUser = async (data: createUserData) => {
-    try {
-        const existEmail = await prisma.user.findUnique({
-            where: {
-                email: data.email
-            }
-        })
 
-        if (existEmail) {
-            return false
-        }
+export const createUser = async (data: createUserData) => await prisma.user.create({ data })
 
-        return await prisma.user.create({ data })
-    }
-    catch (error: any) {
-        return false
-    }
-}
+export const getUserByEmail = async (email: string) =>  await prisma.user.findUnique({ where: { email } })
 
-export const getUserByEmail = async (email: string) => {
-    try {
-        return await prisma.user.findUnique({ where: { email } })
-    }
-    catch (error: any) {
-        return false
-    }
-}
-export const getUserById = async (id: string) => {
-    try {
-        return await prisma.user.findUnique({ where: { id } })
-    }
-    catch (error: any) {
-        return false
-    }
-}
+export const getUserById = async (id: string) =>  await prisma.user.findUnique({ where: { id } })
 
 export const createToken = async (userId: string) => jwt.sign(userId, process.env.JWT_SECRET as string)

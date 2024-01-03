@@ -2,9 +2,8 @@ import { RequestHandler } from "express"
 import z from 'zod'
 import * as Auth from '../services/auth'
 import bcrypt from 'bcrypt'
-import { PrismaClient } from "@prisma/client";
+import { ApiErrorValidationFields } from "../utils/ApiError";
 
-const prisma = new PrismaClient()
 
 export const Register: RequestHandler = async (req, res) => {
 
@@ -17,25 +16,28 @@ export const Register: RequestHandler = async (req, res) => {
     const data = registerSchema.safeParse(req.body)
 
     if (!data.success) {
-        return res.json({ error: data.error.message })
+        throw new ApiErrorValidationFields("Dados inválidos", 200)
     }
+    const { email, name, password } = data.data
 
-    const hashedPassword = await bcrypt.hash(data.data.password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    const exist = await Auth.getUserByEmail(email)
+
+    if (exist) {
+        throw new ApiErrorValidationFields('Esse e-mail já existe', 400, 'email')
+    }
 
     const newUser = await Auth.createUser({
-        name: data.data.name,
-        email: data.data.email,
-        hashedPassword: hashedPassword
+        email,
+        name,
+        hashedPassword
     })
-
-    if (!newUser) {
-        return res.json({ error: "Erro ao criar usuário" })
-    }
-
     const { hashedPassword: _, ...user } = newUser
 
     const token = await Auth.createToken(newUser.id)
-    res.json({ User: user, success: "Usuário criado com sucesso", token })
+
+    return res.json({ User: user, success: "Usuário criado com sucesso", token })
 
 }
 export const Login: RequestHandler = async (req, res) => {
@@ -48,19 +50,19 @@ export const Login: RequestHandler = async (req, res) => {
     const data = loginSchema.safeParse(req.body)
 
     if (!data.success) {
-        return res.json({ error: "Dados inválidos" })
+        throw new ApiErrorValidationFields("Dados inválidos", 200)
     }
 
     const user = await Auth.getUserByEmail(data.data.email)
 
     if (!user) {
-        return res.json({ error: "Usuário inexistente" })
+        throw new ApiErrorValidationFields("Usuário inexistente", 400, "email")
     }
 
-    const passwordCompare = bcrypt.compare(data.data.password, user?.hashedPassword)
+    const passwordCompare = await bcrypt.compare(data.data.password, user?.hashedPassword)
 
     if (!passwordCompare) {
-        return res.json({ error: "Senha inválida" })
+        throw new ApiErrorValidationFields("Senha inválida", 400, "password")
     }
 
     const { hashedPassword: _, ...userLogin } = user
