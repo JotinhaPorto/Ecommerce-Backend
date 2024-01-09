@@ -4,7 +4,6 @@ import { Strategy as JWTStrategy, ExtractJwt } from "passport-jwt";
 import { getUserById } from "../services/auth";
 import { RequestHandler } from "express";
 import { User } from "@prisma/client";
-import jwt from "jsonwebtoken";
 
 dotenv.config()
 
@@ -16,14 +15,16 @@ const options = {
 }
 
 passport.use(new JWTStrategy(options, async (payload, done) => {
+    //payload é referente ao id do user com esse token
+    const user = await getUserById(payload)
+    console.log(user)
 
-    const user = await getUserById(payload.id)
+    if (user) {
+        return done(null, user)
 
-    if (!user) {
-        return done(errorMessage, false)
     }
 
-    return done(null, user)
+    done(errorMessage, false)
 
 }))
 
@@ -32,10 +33,10 @@ passport.use(new JWTStrategy(options, async (payload, done) => {
 
 
 //Middleware
-
 export const privateRoute: RequestHandler = async (req, res, next) => {
 
-    passport.authenticate('jwt', (user: User) => {
+    passport.authenticate('jwt', (error: any, user: User) => {
+        console.log(user)
         if (!user) {
             return res.status(401).json({ error: 'Unauthorized' }), next(errorMessage)
         }
