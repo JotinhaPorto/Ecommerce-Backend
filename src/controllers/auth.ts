@@ -3,8 +3,10 @@ import z from 'zod'
 import * as Auth from '../services/auth'
 import bcrypt from 'bcrypt'
 import { ApiErrorValidationFields } from "../utils/ApiError";
+import JWT from "jsonwebtoken";
+import dotenv from 'dotenv'
 
-
+dotenv.config()
 export const Register: RequestHandler = async (req, res) => {
 
     const registerSchema = z.object({
@@ -35,9 +37,8 @@ export const Register: RequestHandler = async (req, res) => {
     })
     const { hashedPassword: _, ...user } = newUser
 
-    const token = await Auth.createToken(newUser.id)
 
-    return res.json({ User: user, success: "Usuário criado com sucesso", token })
+    return res.json({ User: user, success: "Usuário criado com sucesso" })
 
 }
 export const Login: RequestHandler = async (req, res) => {
@@ -69,5 +70,26 @@ export const Login: RequestHandler = async (req, res) => {
 
     const token = await Auth.createToken(user.id)
 
-    res.json({ userLogin, token })
+    res.json({ user: userLogin, token })
+}
+
+export const Profile: RequestHandler = async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+        throw new ApiErrorValidationFields("Não autorizado", 400)
+    }
+
+    const { id } = await Auth.verifyToken(token as string) as { id: string }
+
+    const user = await Auth.getUserById(id)
+
+    if (!user) {
+        throw new ApiErrorValidationFields("Não autorizado", 400)
+    }
+
+    const { hashedPassword: _, ...userInformation } = user
+
+    res.json({ loggedUser: userInformation })
+
 }
