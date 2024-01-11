@@ -36,7 +36,6 @@ passport.use(new JWTStrategy(options, async (payload, done) => {
 export const privateRoute: RequestHandler = async (req, res, next) => {
 
     passport.authenticate('jwt', (error: any, user: User) => {
-        console.log(user)
         if (!user) {
             return res.status(401).json({ error: 'Unauthorized' }), next(errorMessage)
         }
