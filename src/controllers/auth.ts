@@ -3,7 +3,6 @@ import z from 'zod'
 import * as Auth from '../services/auth'
 import bcrypt from 'bcrypt'
 import { ApiErrorValidationFields } from "../utils/ApiError";
-import JWT from "jsonwebtoken";
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -93,3 +92,4 @@ export const Profile: RequestHandler = async (req, res) => {
     res.json({ loggedUser: userInformation })
 
 }
+
