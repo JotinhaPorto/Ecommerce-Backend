@@ -17,7 +17,6 @@ const options = {
 passport.use(new JWTStrategy(options, async (payload, done) => {
     //payload é referente ao id do user com esse token
     const user = await getUserById(payload)
-    console.log(user)
 
     if (user) {
         return done(null, user)
@@ -39,7 +38,7 @@ export const privateRoute: RequestHandler = async (req, res, next) => {
         if (!user) {
             return res.status(401).json({ error: 'Unauthorized' }), next(errorMessage)
         }
-        req.user = user
+        req.user = user.id
         next()
     })(req, res, next)
 }
