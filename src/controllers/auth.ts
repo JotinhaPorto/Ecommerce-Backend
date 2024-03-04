@@ -92,4 +92,3 @@ export const Profile: RequestHandler = async (req, res) => {
     res.json({ loggedUser: userInformation })
 
 }
-
