@@ -4,9 +4,10 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
-  provider = "mysql"
-  url = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
@@ -41,10 +42,13 @@ model Store {
 }
 
 model Product {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  price       Float
+  isFeatured  Boolean
+  isAvailable Boolean
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   storeId    String
   sizeId     String
@@ -56,7 +60,7 @@ model Product {
   color    Color    @relation(fields: [colorId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
 
-  image Image[]
+  image ImageProduct[]
 
   @@index([storeId])
   @@index([sizeId])
@@ -108,28 +112,45 @@ model Category {
   @@index([billboardId])
 }
 
-model Billboard {
+model ImageProduct {
   id        String   @id @default(uuid())
-  image     String
-  label     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  storeId  String
-  store    Store      @relation(fields: [storeId], references: [id])
-  category Category[]
-
-  @@index([storeId])
-}
-
-model Image {
-  id        String   @id @default(uuid())
+  name      String
+  size      Int
   url       String
+  key       String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   productId String
-  Product   Product @relation(fields: [productId], references: [id])
+  Product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
+}
+
+model Billboard {
+  id        String           @id @default(uuid())
+  label     String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  storeId   String
+  store     Store            @relation(fields: [storeId], references: [id])
+  category  Category[]
+  image     ImageBillboard[]
+
+  @@index([storeId])
+}
+
+model ImageBillboard {
+  id        String   @id @default(uuid())
+  name      String
+  size      Int
+  url       String
+  key       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  billboardId String    @unique
+  Billboard   Billboard @relation(fields: [billboardId], references: [id], onDelete: Cascade)
+
+  @@index([billboardId])
 }
