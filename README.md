@@ -11,7 +11,7 @@
 </p>
 
 <h2 >📌 Sobre</h2>
-Api feita para o front do ecommerce-cms-front, um crud utilizando aws(S3)
+Api feita para o front do ecommerce-cms-front, um crud usando PlanetScale como banco de dados e utilizando aws(S3) para armazenamento de imagens
 
 <h3>Clonar</h3>
 
