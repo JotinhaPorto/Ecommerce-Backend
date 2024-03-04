@@ -3,6 +3,8 @@ import * as Store from "../services/store";
 import * as Auth from "../services/auth";
 import { ApiErrorValidationFields } from "../utils/ApiError";
 import { z } from "zod";
+import { BillboardRequestFile } from "../types/Billboard";
+import { S3Client, S3, DeleteObjectCommandInput } from "@aws-sdk/client-s3";
 
 export const getFirstStoreByUserId: RequestHandler = async (req, res) => {
   const store = await Store.getFirstStoreByUserId(req.user as string);
@@ -64,7 +66,6 @@ export const deleteStore: RequestHandler = async (req, res) => {
 
 export const editStore: RequestHandler = async (req, res) => {
   const { id } = req.params;
-  console.log(id);
 
   const editStoreSchema = z.object({
     name: z.string().min(4, "Nome deve ter pelo menos 4 caracteres"),
@@ -170,7 +171,10 @@ export const updateColor: RequestHandler = async (req, res) => {
 
 export const deleteColor: RequestHandler = async (req, res) => {
   const { storeId, colorId } = req.params;
-
+  const isUsedInProduct = await Store.getProductByColorId(storeId, colorId);
+  if (isUsedInProduct) {
+    throw new ApiErrorValidationFields("Esta cor está sendo usada em um produto", 400)
+  }
   const deletedColor = await Store.deleteColor(storeId, colorId);
 
   if (!deletedColor) {
@@ -263,7 +267,10 @@ export const updateSize: RequestHandler = async (req, res) => {
 
 export const deleteSize: RequestHandler = async (req, res) => {
   const { storeId, sizeId } = req.params;
-
+  const isUsedInProduct = await Store.getProductBySizeId(storeId, sizeId);
+  if (isUsedInProduct) {
+    throw new ApiErrorValidationFields("Esta tamanho está sendo usado em um produto", 400)
+  }
   const deletedSize = await Store.deleteSize(storeId, sizeId);
 
   if (!deletedSize) {
@@ -272,3 +279,215 @@ export const deleteSize: RequestHandler = async (req, res) => {
 
   res.json(deletedSize);
 };
+
+export const createBillboard: RequestHandler = async (req, res) => {
+  const { storeId } = req.params
+  const { label, image: { location, originalname, key, size } } = req.body
+
+
+  const billboard = await Store.createBillboard({
+    label,
+    storeId,
+    image: {
+      url: location,
+      name: originalname,
+      key: key,
+      size: size
+
+    }
+  })
+
+  if (!billboard) {
+    throw new ApiErrorValidationFields("Erro interno ao criar billboard", 400)
+  }
+  return res.json(billboard)
+};
+
+export const updateBillboard: RequestHandler = async (req, res) => {
+  const { storeId, billboardId } = req.params
+  const { label, image: { location, originalname, key, size } } = req.body
+  const billboard = await Store.updateBillboard(billboardId, {
+    storeId,
+    label,
+    image: {
+      url: location ? location : req.body.image.url,
+      name: originalname ? originalname : req.body.image.name,
+      key: key ? key : req.body.image.key,
+      size: size ? size : req.body.image.size
+    }
+  })
+  if (!billboard) {
+    throw new ApiErrorValidationFields("Erro interno ao atualizar billboard", 400)
+  }
+  return res.json(billboard)
+}
+
+export const getBillboardById: RequestHandler = async (req, res) => {
+  const { storeId, billboardId } = req.params;
+
+  const billboard = await Store.getBillboardById(storeId, billboardId);
+  res.json(billboard);
+};
+
+export const getAllBillboards: RequestHandler = async (req, res) => {
+  const { storeId } = req.params;
+
+  const billboards = await Store.getAllBillboards(storeId);
+
+  if (!billboards) {
+    throw new ApiErrorValidationFields("Erro interno ao buscar outdoors", 400);
+  }
+
+  res.json(billboards);
+};
+
+
+export const deleteBillboard: RequestHandler = async (req, res) => {
+  const { storeId, billboardId } = req.params;
+
+  const isUsedInCategory = await Store.getCategoryByBillboardId(storeId, billboardId)
+  if (isUsedInCategory) {
+    throw new ApiErrorValidationFields("Esta outdoor está sendo usada em uma categoria", 400)
+  }
+  const deletedBillboard = await Store.deleteBillboard(storeId, billboardId);
+
+  if (!deletedBillboard) {
+    throw new ApiErrorValidationFields("Erro interno ao deletar outdoor", 400);
+  }
+
+  res.json(deletedBillboard);
+
+};
+
+export const uploadImage: RequestHandler = async (req, res) => {
+  res.json(req.file);
+}
+
+export const createCategory: RequestHandler = async (req, res) => {
+  const { storeId } = req.params
+  const { name, billboardId } = req.body
+  const category = await Store.createCategory({ name, storeId, billboardId })
+  if (!category) {
+    throw new ApiErrorValidationFields("Erro interno ao criar categoria", 400)
+  }
+  return res.json(category)
+}
+
+export const getAllCategories: RequestHandler = async (req, res) => {
+  const { storeId } = req.params
+  const categories = await Store.getAllCategories(storeId)
+  if (!categories) {
+    throw new ApiErrorValidationFields("Erro interno ao buscar categorias", 400)
+  }
+  return res.json(categories)
+}
+export const getCategoryById: RequestHandler = async (req, res) => {
+  const { storeId, categoryId } = req.params
+  const category = await Store.getCategoryById(storeId, categoryId)
+  return res.json(category)
+}
+
+export const updateCategory: RequestHandler = async (req, res) => {
+  const { storeId, categoryId } = req.params
+  const { name, billboardId } = req.body
+  const teste = await Store.updateCategory(storeId, categoryId, { name, billboardId })
+  return res.json(teste)
+}
+
+export const deleteCategory: RequestHandler = async (req, res) => {
+  const { storeId, categoryId } = req.params
+  console.log("storeId, categoryId", storeId, categoryId)
+  const isUsedInProduct = await Store.getProductByCategoryId(storeId, categoryId)
+  console.log("isUsedInProduct", isUsedInProduct)
+  if (isUsedInProduct) {
+    throw new ApiErrorValidationFields("Esta categoria está sendo usada em um produto", 400)
+  }
+  const deletedCategory = await Store.deleteCategory(storeId, categoryId)
+  if (!deletedCategory) {
+    throw new ApiErrorValidationFields("Erro interno ao deletar categoria", 400)
+  }
+  res.json(deletedCategory)
+}
+
+export const getAllProducts: RequestHandler = async (req, res) => {
+  const { storeId } = req.params
+  const products = await Store.getAllProducts(storeId)
+  return res.json(products)
+}
+export const getProductById: RequestHandler = async (req, res) => {
+  const { storeId, productId } = req.params
+  const product = await Store.getProductById(storeId, productId)
+  return res.json(product)
+}
+
+export const createProduct: RequestHandler = async (req, res) => {
+  const { storeId } = req.params
+  const { name, categoryId, price, colorId, sizeId, isFeatured, isAvailable, image } = req.body
+  const renomearPropriedades = image.map((image: any) => ({
+    url: image.location,
+    name: image.originalname,
+    key: image.key,
+    size: image.size
+  }))
+  const product = await Store.createProduct({
+    storeId,
+    name,
+    categoryId,
+    price,
+    colorId,
+    sizeId,
+    isFeatured,
+    isAvailable,
+    image: renomearPropriedades
+  })
+
+  if (!product) {
+    throw new ApiErrorValidationFields("Erro interno ao criar produto", 400)
+  }
+  return res.json(product)
+}
+
+export const updateProduct: RequestHandler = async (req, res) => {
+  const { storeId, productId } = req.params
+  const { name, categoryId, price, colorId, sizeId, isFeatured, isAvailable, image } = req.body
+  console.log("=====REQ BODY=====")
+  console.log(req.body)
+  let formattedImages: any = [];
+
+  if (Array.isArray(image)) {
+    formattedImages = image.map(img => ({
+      url: img.location ? img.location : img.url,
+      name: img.originalname ? img.originalname : img.name,
+      key: img.key ? img.key : img.key,
+      size: img.size ? img.size : img.size
+    }));
+  }
+  const product = await Store.updateProduct(productId, {
+    name,
+    categoryId,
+    price,
+    colorId,
+    sizeId,
+    isFeatured,
+    isAvailable,
+    image: formattedImages
+  })
+  console.log("======PRODUCT=====")
+  console.log(product)
+  res.json(product)
+}
+
+export const deleteProduct: RequestHandler = async (req, res) => {
+  const { storeId, productId } = req.params
+
+  const productDeleted = await Store.deleteProduct(storeId, productId)
+  if (!productDeleted) {
+    throw new ApiErrorValidationFields("Erro interno ao deletar produto", 400)
+  }
+  return res.json(productDeleted)
+}
+
+export const uploadImages: RequestHandler = async (req, res) => {
+  console.log(req.files)
+  res.json(req.files);
+}
