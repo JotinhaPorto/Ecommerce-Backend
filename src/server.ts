@@ -18,5 +18,4 @@ app.use(store)
 
 
 app.use(errorMiddleware)
-const PORT = process.env.PORT ?? 80
-app.listen(PORT, () => console.log("Server running" + PORT));
+app.listen(process.env.PORT ?? 80, () => console.log("Server running"));
