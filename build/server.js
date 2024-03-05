@@ -17,4 +17,5 @@ app.use(express_1.default.urlencoded({ extended: true }));
 app.use("/auth", auth_1.default);
 app.use(store_1.default);
 app.use(error_1.errorMiddleware);
-app.listen((_a = process.env.PORT) !== null && _a !== void 0 ? _a : 80, () => console.log("Server running"));
+const PORT = (_a = process.env.PORT) !== null && _a !== void 0 ? _a : 80;
+app.listen(PORT, () => console.log("Server running" + PORT));
