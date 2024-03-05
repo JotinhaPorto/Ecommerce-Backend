@@ -4,7 +4,8 @@ import cors from "cors";
 import auth from "./routes/auth";
 import store from "./routes/store";
 import { errorMiddleware } from "./middleware/error";
-
+import http from 'http'
+import https from 'https'
 const app = Express();
 
 app.use(cors());
@@ -17,5 +18,4 @@ app.use(store)
 
 
 app.use(errorMiddleware)
-
 app.listen(process.env.PORT ?? 80, () => console.log("Server running"));
